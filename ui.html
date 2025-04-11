@@ -1,0 +1,183 @@
+<style>
+
+  body {
+    margin: 0px;
+  }
+
+  #main-ui {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  #control-panel {
+    height: 50px;
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+  }
+
+
+  #image-panel {
+    max-width: 100%;
+    height: 350px;
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    flex-wrap: wrap;
+  }
+
+  #image-panel > div {
+    max-width: 100%;
+  }
+
+  #image-panel > div > canvas {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+</style>
+
+<!-- Main UI -->
+<div id="main-ui" class="flex">
+
+  <div id="image-panel">
+  
+  </div>
+  <div id="select-image">
+    Select an image to begin
+  </div>
+  <div id="control-panel">
+    <button id="generate-image">Glitch it!</button>
+  </div>  
+</div>
+
+
+<script>
+
+
+  // ---------------
+  //  SEND MESSAGES
+  // ---------------
+  // Send a message to the plugin
+
+
+  // ---------------
+  //  RECEIVE MESSAGES
+  // ---------------
+
+  window.onmessage = async (event) => {
+
+    // No Image Selected
+    if(event.data.pluginMessage.type == 'no-image-selected') {
+      // empty the array that stores the canvases
+      window.canvasArray = []
+
+      //remove all existing canvas from image panel
+      var imagePanel = document.getElementById('image-panel')
+      while (imagePanel.firstChild) {
+        imagePanel.removeChild(imagePanel.firstChild);
+      }
+
+      // hide image panel
+      document.getElementById('image-panel').style.display = 'none'
+      // hide control panel
+      document.getElementById('control-panel').style.display = 'none'
+      // show select image section
+      document.getElementById('select-image').style.display = 'flex'
+    }
+
+    // Show Image in UI
+    if(event.data.pluginMessage.type == 'show-image-in-ui') {
+      //remove all existing canvas from image panel
+      var imagePanel = document.getElementById('image-panel')
+      while (imagePanel.firstChild) {
+        imagePanel.removeChild(imagePanel.firstChild);
+      } 
+
+      // show image panel
+      document.getElementById('image-panel').style.display = 'flex'
+      // show control panel
+      document.getElementById('control-panel').style.display = 'flex'
+      // show select image section
+      document.getElementById('select-image').style.display = 'none'
+      
+      var imageBytes = new Uint8ClampedArray(event.data.pluginMessage.imageDetails.imageBytes)
+      var width = event.data.pluginMessage.imageDetails.width
+      var height = event.data.pluginMessage.imageDetails.height
+
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+
+      // Set canvas size
+      canvas.width = width;
+      canvas.height = height;
+
+      const imageData = await decode(canvas, ctx, imageBytes)
+
+      // THIS IS WHERE SOMETHING CAN HAPPEN TO THE IMAGE
+      // imageData.data.set(convertImageDataToChannel(window.colors[i].name, imageData));
+
+      // Put the ImageData onto the canvas
+      ctx.putImageData(imageData, 0, 0);
+      
+      // add the canvas to window.canvasArray
+      window.canvasArray.push(canvas)
+      
+      // first put a div around the canvas
+      var div = document.createElement('div')
+      
+      div.appendChild(canvas)
+      document.getElementById('image-panel').appendChild(div)
+      
+
+    }
+
+
+  }
+
+  // ---------------
+  //  DO OTHER STUFF
+  // ---------------
+
+
+  // Decoding an image can be done by sticking it in an HTML
+  // canvas, as we can read individual pixels off the canvas.
+  // This receives bytes from the send-image-bytes
+  async function decode(canvas, ctx, imageBytes) {
+    const url = URL.createObjectURL(new Blob([imageBytes]))
+    const image = await new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => resolve(img)
+      img.onerror = () => reject()
+      img.src = url
+    })
+    canvas.width = image.width
+    canvas.height = image.height
+    ctx.drawImage(image, 0, 0)
+    const imageData = ctx.getImageData(0, 0, image.width, image.height)
+    return imageData
+  }   
+
+  // Encoding an image is also done by sticking pixels in an
+  // HTML canvas and by asking the canvas to serialize it into
+  // an actual PNG file via canvas.toBlob().
+  async function encode(canvas, ctx, imageData) {
+    // console.log('encoding')
+    // console.log(imageData);
+    ctx.putImageData(imageData, 0, 0)
+    return await new Promise((resolve, reject) => {
+      canvas.toBlob(blob => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(new Uint8Array(reader.result))
+        reader.onerror = () => reject(new Error('Could not read from blob'))
+        reader.readAsArrayBuffer(blob)
+      })
+    })
+  }
+
+</script>
+
