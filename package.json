@@ -18,6 +18,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "glitch-canvas": "^1.1.12",
     "p5": "^1.9.4"
   }
 }

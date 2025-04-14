@@ -20,7 +20,6 @@
     align-items: start;
   }
 
-
   #image-panel {
     max-width: 100%;
     height: 350px;
@@ -51,7 +50,7 @@
     Select an image to begin
   </div>
   <div id="control-panel">
-    <button id="generate-image">Glitch it!</button>
+    <button id="glitch-image">Glitch it!</button>
   </div>  
 </div>
 
@@ -64,13 +63,22 @@
   // ---------------
   // Send a message to the plugin
 
+  document.getElementById('glitch-image').onclick = () => {
+    document.getElementById('glitch-image').classList.add('active')
 
+    const canvas = document.querySelector('#image-panel canvas');
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    parent.postMessage({ pluginMessage: { type: 'glitch-image', imageData: imageData} }, '*');
+  }
+  
   // ---------------
   //  RECEIVE MESSAGES
   // ---------------
 
   window.onmessage = async (event) => {
-
+ 
     // No Image Selected
     if(event.data.pluginMessage.type == 'no-image-selected') {
       // empty the array that stores the canvases
@@ -120,12 +128,15 @@
 
       // THIS IS WHERE SOMETHING CAN HAPPEN TO THE IMAGE
       // imageData.data.set(convertImageDataToChannel(window.colors[i].name, imageData));
+      var glitchedImageData = await sendImageToBeGlitched(imageData, height, width)
+
+
 
       // Put the ImageData onto the canvas
-      ctx.putImageData(imageData, 0, 0);
+      ctx.putImageData(glitchedImageData, 0, 0);
       
       // add the canvas to window.canvasArray
-      window.canvasArray.push(canvas)
+      // window.canvasArray.push(canvas)
       
       // first put a div around the canvas
       var div = document.createElement('div')
@@ -136,12 +147,87 @@
 
     }
 
+    if(event.data.pluginMessage.type == 'glitched-image') {
+      
+      console.log(new Uint8ClampedArray(event.data.pluginMessage.imageData.data))
 
+      // Get the new image data from the event
+      const newImageData = new ImageData(
+        new Uint8ClampedArray(event.data.pluginMessage.imageData.data),
+        event.data.pluginMessage.imageData.width,
+        event.data.pluginMessage.imageData.height
+      );
+
+      // Find the existing canvas
+      const canvas = document.querySelector('#image-panel canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Update the canvas with the new image data
+      canvas.width = newImageData.width;
+      canvas.height = newImageData.height;
+      ctx.putImageData(newImageData, 0, 0);
+    }
+  
   }
 
   // ---------------
   //  DO OTHER STUFF
   // ---------------
+
+  async function sendImageToBeGlitched(imageData, height, width) {
+      // // Apply a glitch effect to the imageData
+      // for (let i = 0; i < imageData.data.length; i += 4) {
+      //   // Swap red and blue channels
+      //   let red = imageData.data[i];
+      //   let blue = imageData.data[i + 2];
+      //   imageData.data[i] = blue;
+      //   imageData.data[i + 2] = red;
+
+      //   // Add a random offset to the green channel
+      //   imageData.data[i + 1] = Math.min(255, imageData.data[i + 1] + (Math.random() * 50 - 25));
+      // }
+    var output = imageData;
+    var height = imageData.height;
+    var width = imageData.width;
+      // return imageData;
+
+    // 1. RGB Channel Shift (horizontal offset for each channel)
+    for (let y = 0; y < height; y++) {
+      // Randomly decide to shift this row
+      if (Math.random() < 0.9) {
+        const shift = Math.floor(Math.random() * 20) - 10; // -10 to +10 pixels
+        for (let x = 0; x < width; x++) {
+          const srcIdx = (y * width + x) * 4;
+          const dstX = Math.min(width - 1, Math.max(0, x + shift));
+          const dstIdx = (y * width + dstX) * 4;
+
+          // Shift only the red channel for a glitchy look
+          output.data[dstIdx] = imageData.data[srcIdx];
+          // Optionally, shift green and blue differently for more effect
+          // output.data[dstIdx + 1] = imageData.data[srcIdx + 1];
+          // output.data[dstIdx + 2] = imageData.data[srcIdx + 2];
+        }
+      }
+    }
+
+    // 2. Random horizontal line offset (datamosh effect)
+    for (let i = 0; i < 5; i++) {
+      const y = Math.floor(Math.random() * height);
+      const lineOffset = Math.floor(Math.random() * 30) - 15;
+      for (let x = 0; x < width; x++) {
+        const srcIdx = (y * width + x) * 4;
+        const dstX = Math.min(width - 1, Math.max(0, x + lineOffset));
+        const dstIdx = (y * width + dstX) * 4;
+        for (let c = 0; c < 4; c++) {
+          output.data[dstIdx + c] = imageData.data[srcIdx + c];
+        }
+      }
+    }    
+    
+    return output;
+
+
+  }
 
 
   // Decoding an image can be done by sticking it in an HTML

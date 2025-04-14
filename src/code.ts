@@ -1,5 +1,11 @@
 // Import functions for generating a palette from an image
 import * as utils from "./modules/utils";
+// @ts-ignore
+import * as glitch from "glitch-canvas";
+
+
+
+
 
 // Turn on the UI
 figma.showUI(__html__, { themeColors: true, height: 600, width: 400 })
@@ -31,9 +37,14 @@ figma.on('selectionchange', () => {
 // ---------------
 
 // Check for a message from the UI
-figma.ui.onmessage = msg => {
+figma.ui.onmessage = async msg => {
+  
 
- 
+  if (msg.type === 'glitch-image') {
+    let glitchedData = await utils.glitch1(msg.imageData);
+    figma.ui.postMessage({ type: 'glitched-image', imageData: glitchedData });
+
+  }
 }
 
 
