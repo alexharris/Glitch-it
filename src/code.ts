@@ -13,10 +13,12 @@ figma.showUI(__html__, { themeColors: true, height: 600, width: 400 })
 
 function selectImage() {
   var selectedImage = utils.getSelectedImage();
-
+  
   selectedImage.then((value) => {
+    
     if (value !== undefined) {
       // Send the image to the UI
+      console.log(value)
       figma.ui.postMessage({ type: 'show-image-in-ui', imageDetails: value });
     } else {
       figma.ui.postMessage({ type: 'no-image-selected'});
@@ -40,11 +42,6 @@ figma.on('selectionchange', () => {
 figma.ui.onmessage = async msg => {
   
 
-  if (msg.type === 'glitch-image') {
-    let glitchedData = await utils.glitch1(msg.imageData);
-    figma.ui.postMessage({ type: 'glitched-image', imageData: glitchedData });
-
-  }
 }
 
 
