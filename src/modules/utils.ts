@@ -24,7 +24,6 @@ export async function getSelectedImage() {
           // const size = await image.getSizeAsync();
           const bytes = await image.getBytesAsync();
           // This returns a promise to code.ts
-          
           return { imageBytes: bytes, height: node.height, width: node.width };
         } else {
           console.log('no image selected. error needed')
