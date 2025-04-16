@@ -8,7 +8,7 @@ import * as glitch from "glitch-canvas";
 
 
 // Turn on the UI
-figma.showUI(__html__, { themeColors: true, height: 600, width: 400 })
+figma.showUI(__html__, { themeColors: true, height: 600, width: 800 })
 
 
 function selectImage() {
@@ -18,7 +18,7 @@ function selectImage() {
     
     if (value !== undefined) {
       // Send the image to the UI
-      console.log(value)
+      // console.log(value)
       figma.ui.postMessage({ type: 'show-image-in-ui', imageDetails: value });
     } else {
       figma.ui.postMessage({ type: 'no-image-selected'});

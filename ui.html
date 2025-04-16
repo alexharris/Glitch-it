@@ -14,7 +14,7 @@
 
   #control-panel {
     height: 50px;
-    width: 50%;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: start;
@@ -29,12 +29,8 @@
     flex-wrap: wrap;
   }
 
-  #image-panel > div {
-    max-width: 100%;
-    max-height: 350px
-  }
 
-  #image-panel > div > canvas {
+  #image-panel > canvas {
     max-width: 100%;
     max-height: 350px
   }
@@ -134,13 +130,8 @@
   }
 
   async function showImageInUI(data) {
-    console.log(data)
     var imageDetails = data.imageDetails;
     var imagePanel = document.getElementById('image-panel')
-
-    while (imagePanel.firstChild) {
-      imagePanel.removeChild(imagePanel.firstChild);
-    } 
 
     // show image panel
     document.getElementById('image-panel').style.display = 'flex'
@@ -149,22 +140,20 @@
     // show select image section
     document.getElementById('select-image').style.display = 'none'
     
+    // console.log(imageDetails)
     var imageBytes = new Uint8ClampedArray(imageDetails.imageBytes)
+
     var width = imageDetails.width
     var height = imageDetails.height
 
-    const canvas = document.createElement('canvas')
+    var canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
 
-    // Set canvas size
-    canvas.width = width;
-    canvas.height = height;
-
-    imageData = await decode(canvas, ctx, imageBytes)
     imageHeight = height;
     imageWidth = width;
 
-    console.log(imageHeight, imageWidth)
+    imageData = await decode(canvas, ctx, imageBytes)
+
 
     // THIS IS WHERE SOMETHING CAN HAPPEN TO THE IMAGE
     // var glitchedImageData = await glitchImage()
@@ -177,36 +166,38 @@
     // window.canvasArray.push(canvas)
     
     // first put a div around the canvas
-    var div = document.createElement('div')
-    
-    div.appendChild(canvas)
-    document.getElementById('image-panel').appendChild(div)
+
+    document.getElementById('image-panel').appendChild(canvas)
     
   }
 
 
   const stripeImage = async () => {
-    console.log('Applying red stripes to the image');
+    console.log('applying glitch');
 
     var output = imageData;
     var height = imageHeight;
     var width = imageWidth;
     const shift = Math.floor(Math.random() * 20) - 10; // -10 to +10 pixels
     var glitchRowSize = 40
-    var gltichShiftAmount = 20
-
-    console.log('height', height)
-    console.log('width', width)
+    var glitchShiftValue = 20
+    var glitchShift = imageData.width * .05 // 5% of the image width
+    console.log('original width', imageData.width)
+    console.log('glitch shift', glitchShift)
+    // console.log('height', height)
+    // console.log('original height', imageData.height)
+    // console.log('width', width)
+    
 
     // go through every row, skipping by rowSize chunks
-    for (let y = 0; y < imageHeight; y += glitchRowSize) {
+    for (let y = 0; y < imageData.height; y += glitchRowSize) {
       if (Math.random() < 0.5) {
         // go through each row within a chunk
-        for (let offsetY = 0; offsetY < glitchRowSize && (y + offsetY) < height; offsetY++) {
-          for (let x = 0; x < width; x++) {
-            const sourceIndex = (y + offsetY) * width * 4 + x * 4;
-            const destinationX = Math.max(0, x - gltichShiftAmount); // Shift left by 10 pixels
-            const destinationIndex = (y + offsetY) * width * 4 + destinationX * 4;
+        for (let offsetY = 0; offsetY < glitchRowSize && (y + offsetY) < imageData.height; offsetY++) {
+          for (let x = 0; x < imageData.width; x++) {
+            const sourceIndex = (y + offsetY) * imageData.width * 4 + x * 4;
+            const destinationX = Math.max(0, x - glitchShift); // Shift left by 10 pixels
+            const destinationIndex = (y + offsetY) * imageData.width * 4 + destinationX * 4;
 
             // Shift only the red channel
             // output.data[destinationIndex] = imageData.data[sourceIndex]; // Red
@@ -230,19 +221,19 @@
     var output = imageData;
     var height = imageHeight;
     var width = imageWidth;
-    console.log(height,width, glitchRowThickness)
+    // console.log(height,width, glitchRowThickness)
 
     // 1. RGB Channel Shift (horizontal offset for each channel)
     // meaning take the red channel of a row a shift it to the right or left
     const batchSize = 10;
     for (let y = 0; y < height; y += batchSize) {
-      console.log(`Processing rows ${y} to ${y + batchSize - 1}`);
+      // console.log(`Processing rows ${y} to ${y + batchSize - 1}`);
       // Randomly decide to shift this batch of rows
       if (Math.random() < 0.5) {
         // How far left or right it is shifted
         const shift = Math.floor(Math.random() * 20) - 10; // -10 to +10 pixels
         for (let chunkY = y; chunkY < y + batchSize && chunkY < height; chunkY++) {
-          console.log(`Chunk Y: ${chunkY}, Shift: ${shift}`);
+          // console.log(`Chunk Y: ${chunkY}, Shift: ${shift}`);
           for (let x = 0; x < width; x++) {
             const sourceIndex = (chunkY * width + x) * 4;
             output.data[sourceIndex] = 255;       // Red
@@ -292,6 +283,7 @@
   // canvas, as we can read individual pixels off the canvas.
   // This receives bytes from the send-image-bytes
   async function decode(canvas, ctx, imageBytes) {
+    console.log('decoding')
     const url = URL.createObjectURL(new Blob([imageBytes]))
     const image = await new Promise((resolve, reject) => {
       const img = new Image()
@@ -299,9 +291,12 @@
       img.onerror = (err) => reject(new Error('Failed to load image: ' + err.message));
       img.src = url
     })
-    canvas.width = image.width
-    canvas.height = image.height
-    ctx.drawImage(image, 0, 0)
+    
+    canvas.width = imageWidth
+    canvas.height = imageHeight
+    
+    // drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
+    ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height)
     const imageData = ctx.getImageData(0, 0, image.width, image.height)
     return imageData
   }   
