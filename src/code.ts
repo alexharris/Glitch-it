@@ -8,7 +8,7 @@ import * as glitch from "glitch-canvas";
 
 
 // Turn on the UI
-figma.showUI(__html__, { themeColors: true, height: 600, width: 800 })
+figma.showUI(__html__, { themeColors: true, height: 600, width: 400 })
 
 
 function selectImage() {

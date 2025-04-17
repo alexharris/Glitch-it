@@ -51,7 +51,7 @@
     <input type="range" id="row-thickness" min="1" max="100" value="10" step="1">
     <span id="row-thickness-value">2</span>
     <label for="glitch-shift-amount">Shift Amount:</label>
-    <input type="range" id="glitch-shift-amount" min="1" max="10" value="2" step="1">
+    <input type="range" id="glitch-shift-amount" min="-10" max="10" value="2" step="1">
     <span id="glitch-shift-amount-value">5</span>    
     <label>
       <input type="checkbox" id="red-channel" checked>
@@ -202,8 +202,6 @@
 
     imageData = await decode(canvas, ctx, imageBytes)
 
-
-
     // THIS IS WHERE SOMETHING CAN HAPPEN TO THE IMAGE
     
     var glitchedImageData = await stripeImage()
@@ -212,51 +210,40 @@
 
     ctx.putImageData(glitchedImageData, 0, 0);
     
-    // add the canvas to window.canvasArray
-    // window.canvasArray.push(canvas)
-    
-    // first put a div around the canvas
-
     document.getElementById('image-panel').appendChild(canvas)
     
   }
 
 
   const stripeImage = async () => {
-    console.log(imageData)
     var output = imageData;
     var newHeight = imageHeight;
     var newWidth = imageWidth;
     var originalHeight = imageData.height;
     var originalWidth = imageData.width;
-    var glitchRowSize = Math.floor(newHeight * (glitchRowThickness * .001))
-    var glitchShiftValue = glitchShiftInput
-    var glitchShift = Math.floor(newWidth * (glitchShiftValue * .01)) // 5% of the image width
-    // console.log('original width', originalWidth)
-    // console.log('new width', newWidth)
-    // console.log('original height', originalHeight)
-    // console.log('new height', newHeight)    
-    // console.log('glitch shift', glitchShift)
+    var glitchRowSize = Math.floor(newHeight * (glitchRowThickness * .01)) // height of shifts
+    var glitchShift = Math.floor(newWidth * (glitchShiftInput * .01)) // amount to shift horizontally
     console.log(channelShiftChannels.red, channelShiftChannels.green, channelShiftChannels.blue)
     // go through every row, skipping by rowSize chunks
     for (let y = 0; y < newHeight; y += glitchRowSize) {
       if (Math.random() < .5) { 
         // go through each row within a chunk
-        
         for (let offsetY = 0; offsetY < glitchRowSize && (y + offsetY) < newHeight; offsetY += 1) {
           
           for (let x = 0; x < newWidth; x++) {
             const sourceIndex = (y + offsetY) * newWidth * 4 + x * 4;
-            const destinationX = Math.max(0, x - glitchShift); // Shift left by 10 pixels
+            const destinationX = Math.min(newWidth - 1, Math.max(0, x + glitchShift)); // Adjust for negative or positive shift
             const destinationIndex = (y + offsetY) * newWidth * 4 + destinationX * 4;
 
             if (channelShiftChannels.red) {
               output.data[destinationIndex] = imageData.data[sourceIndex]; // Red
             }
-            if (channelShiftChannels.green) {
-              output.data[destinationIndex + 1] = imageData.data[sourceIndex + 1]; // Green
+            if (channelShiftChannels.green) {              
+              output.data[destinationIndex + 1] = imageData.data[sourceIndex + 1]; // Green 
+                      
             }
             if (channelShiftChannels.blue) {
+              
               output.data[destinationIndex + 2] = imageData.data[sourceIndex + 2]; // Blue
             }
             output.data[destinationIndex + 3] = imageData.data[sourceIndex + 3]; // Alpha
@@ -265,7 +252,6 @@
       }
     }
      
-
     return output;
   };
   
